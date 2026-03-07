@@ -145,7 +145,7 @@ RepairBOT/
 
 ### Frontend Tech Stack
 
-- Use **React** (functional components and hooks) for the UI.
+- Use **React** (functional components and hooks) for the web UI.
 - Single-page layout with two main states:
   - Landing view (value prop + 3-step explanation).
   - App view (upload, loading state, results).
@@ -155,6 +155,30 @@ RepairBOT/
   - `ResultsCard` – badges, description, step-by-step instructions, and parts/tools link lists.
 - Networking: use `fetch` or `axios` in React to call `POST /analyze` with `FormData`.
 - Styling: reuse the existing visual design from `frontend/index.html` as CSS-in-React (CSS modules, Tailwind, or plain CSS) without changing product behavior.
+
+### Mobile App & App Clips (Optional)
+
+When building a native mobile app or App Clip experience, use the following:
+
+- **Preferred mobile stack**: **React Native** for cross-platform iOS and Android. React Native enables code sharing with the web logic and is compatible with App Clip development (see [Shopify Engineering: Building an App Clip with React Native](https://shopify.engineering/building-app-clip-react-native)).
+- **Reactiv** (optional): For Shopify merchants who want instant, no-install App Clip experiences (e.g., scan a broken item in-store and get repair info + product links), consider integrating with [Reactiv](https://www.reactiv.ai/). Reactiv is a mobile commerce platform that turns shoppers into customers via App Clips, NFC, QR codes, and geolocation triggers. It integrates natively with Shopify for product catalog, cart, and checkout.
+  - **Reactiv platform**: [https://www.reactiv.ai/](https://www.reactiv.ai/) — main product, Shopify App Store integration.
+  - **Reactiv ClipKit Lab**: [https://github.com/reactivapp/reactivapp-clipkit-lab](https://github.com/reactivapp/reactivapp-clipkit-lab) — dedicated lab for ClipKit exploration and hackathon-style App Clip development. Uses Swift and Xcode; useful for prototyping iOS App Clip experiences. For React Native–based App Clips, refer to Shopify’s engineering blog instead.
+
+### Reactiv Sponsor Track (Planned)
+
+Reactiv is a sponsor track for RepairBOT. When implementing the Reactiv integration, do the following:
+
+- **ClipKit Lab submission**: Create a RepairBOT App Clip experience using the [Reactiv ClipKit Lab](https://github.com/reactivapp/reactivapp-clipkit-lab). The lab provides a Swift-based simulator (no Apple Developer account required) for Hack Canada and similar hackathons.
+- **Implementation scope**:
+  - Fork or clone the ClipKit lab; create a submission via `scripts/create-submission.sh "RepairBOT"`.
+  - Build a `ClipExperience` that: (1) is invoked via URL (e.g. `repairbot.app/repair` or `repairbot.app/store/:storeId/repair`); (2) lets the user capture or select a photo of a broken item; (3) calls the RepairBOT `POST /analyze` API with the image; (4) displays repairability, cost, steps, and links to parts/tools (Shopify or Google Shopping).
+  - Add CORS middleware to the FastAPI backend so the iOS simulator can call `/analyze` from a different origin.
+  - Provide mock/sample data fallback when the API is unreachable (e.g. during demo) so the Clip UI can be demonstrated.
+- **Requirements**: macOS, Xcode 26+, iOS 26+ simulator, Swift 5.0. No external dependencies (no SPM, CocoaPods, or Carthage).
+- **Documentation** (links provided for sponsor track):
+  - Reactiv ClipKit Lab: https://github.com/reactivapp/reactivapp-clipkit-lab
+  - Reactiv: https://www.reactiv.ai/
 
 ---
 
@@ -301,3 +325,4 @@ JSON object with this exact shape:
 - [ ] Add optional synonyms config for Shopify to improve part/tool matching.
 - [ ] Add basic observability (e.g. Shopify hit/miss rates) for debugging.
 - [ ] Consider adding a disclaimer in the UI: "Repair at your own risk; seek professional help when in doubt."
+- [ ] Explore Reactiv integration for App Clip experiences (instant repair analysis + product links for in-store or QR-triggered use cases).
