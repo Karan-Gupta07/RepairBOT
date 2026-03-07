@@ -1,9 +1,12 @@
 """Product links: Shopify Storefront API (optional) or Google Shopping search links (no API key)."""
+import logging
 import urllib.parse
 import httpx
 from typing import Any
 
 from app.config import SHOPIFY_STORE_DOMAIN, SHOPIFY_STOREFRONT_TOKEN
+
+logger = logging.getLogger(__name__)
 
 GOOGLE_SHOPPING_BASE = "https://www.google.com/search?tbm=shop&q="
 
@@ -73,25 +76,56 @@ def _google_shopping_links(terms: list[str]) -> list[dict[str, Any]]:
     return out
 
 
-def find_parts_and_tools(parts: list[str], tools: list[str], max_per_category: int = 3) -> dict[str, list[dict]]:
-    """Return {parts: [...], tools: [...]} — exactly one link per part and one per tool (title + url)."""
+def find_parts_and_tools(parts: list[str], tools: list[str], max_per_category: int = 3) -> dict[str, Any]:
+    """Return {parts: [...], tools: [...], source: "shopify"|"google_shopping"}."""
     use_shopify = bool(SHOPIFY_STORE_DOMAIN and SHOPIFY_STOREFRONT_TOKEN)
     parts = [p for p in (parts or []) if (p or "").strip()]
     tools = [t for t in (tools or []) if (t or "").strip()]
 
-    if use_shopify:
-        out_parts: list[dict] = []
-        for term in parts[:15]:
-            hits = search_products(term, first=1)
-            out_parts.append({"title": term, "url": hits[0]["url"]} if hits else {"title": term, "url": GOOGLE_SHOPPING_BASE + urllib.parse.quote_plus(term)})
-        out_tools: list[dict] = []
-        for term in tools[:15]:
-            hits = search_products(term, first=1)
-            out_tools.append({"title": term, "url": hits[0]["url"]} if hits else {"title": term, "url": GOOGLE_SHOPPING_BASE + urllib.parse.quote_plus(term)})
-        return {"parts": out_parts, "tools": out_tools}
+    if not use_shopify:
+        logger.info("Shopify not configured; using Google Shopping links for all terms")
+        return {
+            "parts": _google_shopping_links(parts),
+            "tools": _google_shopping_links(tools),
+            "source": "google_shopping",
+        }
 
-    # One Google Shopping link per part and per tool
-    return {
-        "parts": _google_shopping_links(parts),
-        "tools": _google_shopping_links(tools),
-    }
+    shopify_hits = 0
+    total_terms = 0
+
+    out_parts: list[dict] = []
+    for term in parts[:15]:
+        total_terms += 1
+        logger.info("Searching Shopify for part: %s", term)
+        hits = search_products(term, first=1)
+        if hits:
+            logger.info("Shopify hit for part '%s': %s", term, hits[0].get("title"))
+            shopify_hits += 1
+            out_parts.append({"title": term, "url": hits[0]["url"]})
+        else:
+            logger.info("Shopify miss for part '%s', falling back to Google Shopping", term)
+            out_parts.append({"title": term, "url": GOOGLE_SHOPPING_BASE + urllib.parse.quote_plus(term)})
+
+    out_tools: list[dict] = []
+    for term in tools[:15]:
+        total_terms += 1
+        logger.info("Searching Shopify for tool: %s", term)
+        hits = search_products(term, first=1)
+        if hits:
+            logger.info("Shopify hit for tool '%s': %s", term, hits[0].get("title"))
+            shopify_hits += 1
+            out_tools.append({"title": term, "url": hits[0]["url"]})
+        else:
+            logger.info("Shopify miss for tool '%s', falling back to Google Shopping", term)
+            out_tools.append({"title": term, "url": GOOGLE_SHOPPING_BASE + urllib.parse.quote_plus(term)})
+
+    logger.info(
+        "Shopify hits: %d/%d parts, %d/%d tools",
+        sum(1 for p in out_parts if GOOGLE_SHOPPING_BASE not in p["url"]),
+        len(out_parts),
+        sum(1 for t in out_tools if GOOGLE_SHOPPING_BASE not in t["url"]),
+        len(out_tools),
+    )
+
+    source = "shopify" if shopify_hits > 0 else "google_shopping"
+    return {"parts": out_parts, "tools": out_tools, "source": source}
