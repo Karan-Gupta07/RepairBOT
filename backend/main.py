@@ -4,8 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import os
 
-from app.gemini_service import analyze_image
-from app.shopify_service import find_parts_and_tools
+from backend.gemini_service import analyze_image
+from backend.shopify_service import find_parts_and_tools
 
 ALLOWED_MIME_TYPES = {"image/jpeg", "image/png", "image/webp"}
 

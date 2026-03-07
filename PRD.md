@@ -131,14 +131,39 @@ flowchart TD
 
 ```
 RepairBOT/
-├── app/
-│   ├── main.py          # FastAPI app, /analyze endpoint
+├── backend/
+│   ├── __init__.py
+│   ├── main.py              # FastAPI app, /analyze endpoint
 │   ├── gemini_service.py
 │   ├── shopify_service.py
-│   └── config.py
+│   ├── config.py
+│   └── requirements.txt     # Python dependencies
 ├── frontend/
-│   └── index.html        # React SPA entry point / built assets
-├── requirements.txt
+│   ├── src/
+│   │   ├── main.jsx         # React entry point
+│   │   ├── App.jsx          # Top-level App component
+│   │   ├── App.css          # Global styles
+│   │   └── components/
+│   │       ├── Landing.jsx      # Landing view (value prop + 3-step explanation)
+│   │       ├── UploadCard.jsx   # Drag-and-drop upload + preview + analyze button
+│   │       └── ResultsCard.jsx  # Badges, description, steps, parts/tools links
+│   ├── index.html           # Vite HTML entry point
+│   ├── vite.config.js       # Vite build config
+│   ├── package.json
+│   └── dist/                # Production build output
+├── clip/
+│   ├── README.md
+│   └── RepairBOTClip/       # iOS App Clip (Swift / Xcode)
+│       ├── RepairBOTClipApp.swift   # App entry point
+│       ├── ContentView.swift        # Root navigation view
+│       ├── CameraView.swift         # Camera capture / photo picker
+│       ├── AnalysisView.swift       # Repair analysis results UI
+│       ├── Models/
+│       │   └── RepairResult.swift   # Codable model matching /analyze response
+│       ├── Services/
+│       │   ├── APIService.swift     # Calls POST /analyze
+│       │   └── MockData.swift       # Fallback data for demos
+│       └── Assets.xcassets/
 ├── .env.example
 └── PRD.md
 ```

@@ -7,7 +7,7 @@ from typing import Any
 
 import google.generativeai as genai
 
-from app.config import GEMINI_API_KEY
+from backend.config import GEMINI_API_KEY
 
 MAX_RETRIES = 3
 RETRY_BACKOFF_SEC = [2, 6, 15]  # wait before retry 1, 2, 3

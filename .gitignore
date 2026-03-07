@@ -17,6 +17,9 @@ env/
 dist/
 build/
 
+# Node / Frontend
+node_modules/
+
 # IDE
 .idea/
 .vscode/

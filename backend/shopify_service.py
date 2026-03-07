@@ -4,7 +4,7 @@ import urllib.parse
 import httpx
 from typing import Any
 
-from app.config import SHOPIFY_STORE_DOMAIN, SHOPIFY_STOREFRONT_TOKEN
+from backend.config import SHOPIFY_STORE_DOMAIN, SHOPIFY_STOREFRONT_TOKEN
 
 logger = logging.getLogger(__name__)
 
