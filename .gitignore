@@ -19,6 +19,8 @@ build/
 
 # Node / Frontend
 node_modules/
+frontend/dist/
+frontend/node_modules/
 
 # IDE
 .idea/
