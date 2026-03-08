@@ -1,59 +1,81 @@
-# RepairBOT
+Our Reactiv Clip code to make this a Apple App Clip is in this repo: https://github.com/4ppleSA0CE/reactivapp-clipkit-lab
 
-Take a photo of a broken object (e.g. office chair with a broken wheel) and get brief repair info plus direct links to find and buy parts and tools from Shopify stores.
+Reparo
+Reparo is a computer vision powered repair assistant that identifies broken components from an image, generates a repair plan, and automatically finds the parts needed to complete the repair.
 
-## What it does
+Overview
+Reparo converts a photo of a damaged object into a structured repair workflow. The system identifies the failed component using a vision model, generates a repair guide using Gemini, and retrieves replacement parts and tools from online retailers. The goal is to connect visual damage detection directly to actionable repair instructions and purchasable components.
 
-- **Analyzes the image** with Google Gemini and returns:
-  - Repairability (low / medium / high)
-  - Estimated cost (e.g. $50)
-  - Short description of the damage and repair
-  - Lists of suggested **parts** and **tools**
-- **Product links** – Searches across your configured Shopify stores to find parts and tools. Shows direct links to products in your stores.
+Architecture
+The system consists of three main components:
 
-## Setup
+1. Mobile Client
+The client application was built using Swift with Reactiv and deployed as an App Clip. This allows users to start the repair flow without installing a full application.
 
-1. **Python 3.10+** and a terminal in the project folder.
+Responsibilities:
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+Capture image of damaged object
+Upload image to backend API
+Display repair instructions and repair metadata
+Render purchasable parts and tools
+2. Backend Orchestration
+The backend is implemented in Python and manages the AI pipeline.
 
-3. **Environment variables**  
-   Copy `.env.example` to `.env` and set at least:
-   - **GEMINI_API_KEY** – from [Google AI Studio](https://aistudio.google.com/apikey) (required for image analysis)
+Responsibilities:
 
-   **Shopify Configuration:** Connect one or more Shopify stores:
-   - **Option A (Multiple stores - recommended):** Set `SHOPIFY_STORES` with comma-separated entries:
-     ```
-     SHOPIFY_STORES=store1.myshopify.com|token1,store2.myshopify.com|token2
-     ```
-   - **Option B (Single store - legacy):** Set `SHOPIFY_STORE_DOMAIN` and `SHOPIFY_STOREFRONT_ACCESS_TOKEN`
+Receive image from client
+Run image preprocessing and component identification
+Structure detected damage metadata
+Send structured context to the Gemini API
+Parse Gemini output into a standardized repair format
+The repair format includes:
 
-   To get a Shopify Storefront API token:
-   - Go to Shopify Admin → Settings → Apps and sales channels → Develop apps
-   - Create an app or use an existing one
-   - Enable `read:products` scope
-   - Generate and copy the Storefront API access token
+repair steps
+estimated cost
+difficulty rating
+repairability score
+required parts and tools
+3. Product Discovery Pipeline
+Once required parts are identified, the system searches for purchasable items.
 
-4. **Run the app**
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+Pipeline:
 
-5. Open **http://localhost:8000**, upload a photo of the broken item, and click **Analyze repair**.
+Query SerpAPI to locate relevant products
+Identify Shopify storefronts
+Retrieve product metadata using Shopify JSON endpoints
+Format items into a purchasable cart structure
+This allows repair instructions to directly map to real products.
 
-## API
+Data Flow
+User captures image in App Clip
+Image is sent to backend API
+Vision model identifies failed component
+Structured damage metadata is created
+Metadata is passed to Gemini for repair reasoning
+Gemini returns repair steps and required items
+Product discovery retrieves purchasable parts
+Client renders repair guide and parts list
+Challenges
+Mapping AI output to real commerce
+Gemini outputs repair recommendations, but these must be converted into concrete product searches. The main challenge was structuring the output so it could reliably map to purchasable items.
 
-- **POST /analyze** – body: multipart form with `image` (file). Returns JSON with `repairability`, `estimated_cost_usd`, `brief_description`, `repair_steps`, `parts_needed`, `tools_needed`, and `products: { parts, tools, source }`. 
-  - `products.parts` and `products.tools` are arrays of `{title, url, store}`
-  - `url` is null if the item wasn't found in any configured store
-  - `source` is always `"shopify"`
+Product retrieval
+Shopify storefronts expose consistent JSON product structures. Leveraging these endpoints allowed us to programmatically retrieve product information and build a working cart.
 
-## Notes
+Mobile integration
+Integrating Reactiv with Swift required additional work to ensure a seamless purchasing flow inside the App Clip environment.
 
-- Products are searched across all configured Shopify stores
-- If a part or tool isn't found in any store, it's still shown in the repair summary but without a link
-- Images are sent to Google Gemini for analysis; use in line with Google's API terms and privacy policy
-- Shopify API calls use your configured Storefront API tokens
+Future Work
+Planned improvements include:
+
+AR repair guidance using visual overlays for part placement
+expanded component detection models
+improved part matching accuracy
+integration with local retailers for in-store pickup
+Built With
+Swift
+Reactiv
+Python
+Gemini
+SerpAPI
+Shopify APIs
