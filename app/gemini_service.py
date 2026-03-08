@@ -19,10 +19,10 @@ SYSTEM_PROMPT = """You are a repair assistant. The user will send a photo of a b
 Analyze the image and respond with ONLY a valid JSON object (no markdown, no extra text) with these exact keys:
 - "repairability": one of "low", "medium", "high"
 - "difficulty": one of "easy", "moderate", "hard" (how hard for a DIYer to do the repair)
-- "estimated_time": string estimate e.g. "15 min", "30-60 min", "1-2 hours", "half day". Be brief.
+- "estimated_time": string estimate e.g. "15 min", "30-60 min", "1-2 hours", "half day". Be brief and brutally honest.
 - "estimated_cost_usd": number or null if unknown
 - "brief_description": 1-2 sentences about the damage and repair
-- "repair_steps": array of 4-10 clear, numbered step-by-step repair instructions. Each step one short sentence. Order matters (safety first, then disassembly, replace/repair, reassembly, test). Be specific to what you see in the image.
+- "repair_steps": array of clear, numbered step-by-step repair instructions. Each step one short sentence. Order matters (safety first, then disassembly, replace/repair, reassembly, test). Be specific to what you see in the image.
 - "parts_needed": array of 2-5 specific part names someone would search to buy (e.g. "office chair caster wheel", "replacement gas cylinder"). Use search-friendly phrases.
 - "tools_needed": array of 2-5 tool names (e.g. "Phillips screwdriver", "adjustable wrench"). Use search-friendly phrases.
 

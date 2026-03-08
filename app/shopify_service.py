@@ -6,6 +6,106 @@ import re
 
 from app.config import SERPAPI_API_KEY
 
+
+def _serpapi_shopping_search(query: str, num: int = 5) -> list[dict[str, Any]]:
+    """Search Google Shopping via SerpAPI, filtered to Shopify stores.
+    Returns list of {title, price, link, thumbnail, source, store_domain}.
+    Prioritized path for discovering Shopify products.
+    """
+    if not SERPAPI_API_KEY:
+        return []
+
+    params = {
+        "engine": "google_shopping",
+        "q": f"{query} site:myshopify.com",
+        "api_key": SERPAPI_API_KEY,
+        "num": num,
+    }
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            r = client.get("https://serpapi.com/search.json", params=params)
+            r.raise_for_status()
+            data = r.json()
+    except Exception:
+        return []
+
+    results = []
+    for item in (data.get("shopping_results") or [])[:num]:
+        link = item.get("link") or item.get("product_link") or ""
+        store_domain = _extract_shopify_domain(link)
+        results.append({
+            "title": item.get("title") or query,
+            "price": item.get("extracted_price") or item.get("price") or None,
+            "link": link,
+            "thumbnail": item.get("thumbnail") or None,
+            "source": item.get("source") or "",
+            "store_domain": store_domain,
+        })
+    return results
+
+
+def _extract_shopify_domain(url: str) -> str | None:
+    """Extract the myshopify.com domain from a URL, if present."""
+    try:
+        host = urllib.parse.urlparse(url).hostname or ""
+        if "myshopify.com" in host:
+            return host
+    except Exception:
+        pass
+    return None
+
+
+def _shopify_search_suggest(store_domain: str, query: str, limit: int = 3) -> list[dict[str, Any]]:
+    """Search a Shopify store using the public search suggest endpoint.
+    Returns list of {title, price, url, image, store, source}.
+    """
+    if not store_domain:
+        return []
+
+    suggest_url = f"https://{store_domain}/search/suggest.json"
+    params = {
+        "q": query,
+        "resources[type]": "product",
+        "resources[limit]": limit,
+    }
+    try:
+        with httpx.Client(timeout=8.0) as client:
+            r = client.get(suggest_url, params=params)
+            r.raise_for_status()
+            data = r.json()
+    except Exception:
+        return []
+
+    products = (
+        (data.get("resources") or {}).get("results") or {}
+    ).get("products") or []
+
+    results = []
+    for p in products:
+        price = p.get("price") or ""
+        if price and "." not in str(price):
+            try:
+                price = f"${float(price) / 100:.2f}"
+            except (ValueError, TypeError):
+                price = f"${price}"
+        elif price:
+            price = f"${price}"
+
+        image = p.get("image") or p.get("featured_image", {}).get("url") or None
+        if image and image.startswith("//"):
+            image = "https:" + image
+
+        results.append({
+            "title": p.get("title") or query,
+            "price": price or None,
+            "url": f"https://{store_domain}{p.get('url', '')}",
+            "image": image,
+            "store": store_domain,
+            "source": "shopify",
+        })
+    return results
+
+
 def _search_shopify_stores(query: str) -> list[str]:
     """Use SerpAPI to find Shopify stores selling the product. Return list of store domains."""
     if not SERPAPI_API_KEY or not query.strip():
@@ -106,44 +206,69 @@ def _google_shopping_link(query: str) -> dict[str, Any]:
     }
 
 
+def _search_single_product(term: str) -> dict[str, Any]:
+    """Search for a single product. Prioritizes Shopify via SerpAPI, then fallbacks."""
+    term = (term or "").strip()
+    if not term:
+        return _google_shopping_link(term)
+
+    # Step 1: SerpAPI google_shopping (prioritized) - discover Shopify products directly
+    serp_results = _serpapi_shopping_search(term, num=5)
+
+    # Step 2: For Shopify domains found, enrich with Shopify search suggest
+    for result in serp_results:
+        domain = result.get("store_domain")
+        if domain:
+            suggest = _shopify_search_suggest(domain, term, limit=1)
+            if suggest:
+                return suggest[0]
+
+    # Step 3: If SerpAPI found Shopify results but no suggest match, use best SerpAPI result
+    shopify_serp = [r for r in serp_results if r.get("store_domain")]
+    if shopify_serp:
+        best = shopify_serp[0]
+        return {
+            "title": best.get("title") or term,
+            "price": best.get("price"),
+            "url": best.get("link") or "",
+            "image": best.get("thumbnail"),
+            "store": best.get("store_domain") or best.get("source") or "Shopify",
+            "source": "shopify",
+        }
+
+    # Step 4: If SerpAPI found any results, use best one
+    if serp_results:
+        best = serp_results[0]
+        return {
+            "title": best.get("title") or term,
+            "price": best.get("price"),
+            "url": best.get("link") or "https://www.google.com/search?tbm=shop&q=" + urllib.parse.quote_plus(term),
+            "image": best.get("thumbnail"),
+            "store": best.get("source") or "Online",
+            "source": "serpapi",
+        }
+
+    # Step 5: Fallback - SerpAPI organic search + products.json
+    stores = _search_shopify_stores(term)
+    for store in stores:
+        products = _fetch_products_from_store(store, term)
+        if products:
+            return products[0]
+
+    # Step 6: Final fallback - Google Shopping link
+    return _google_shopping_link(term)
+
+
 def find_parts_and_tools(parts: list[str], tools: list[str]) -> dict[str, list[dict]]:
-    """Search for parts and tools across public Shopify stores using SerpAPI.
-    Fallback to Google Shopping if not found on Shopify.
+    """Search for parts and tools. Prioritizes Shopify via SerpAPI (google_shopping), then fallbacks.
     
     Return {parts: [...], tools: [...]} where each item is:
-    {title, url, store, price, image, source: "shopify" or "google_shopping"}
+    {title, url, store, price, image, source: "shopify" | "serpapi" | "google_shopping"}
     """
     parts = [p for p in (parts or []) if (p or "").strip()]
     tools = [t for t in (tools or []) if (t or "").strip()]
-    
-    out_parts: list[dict] = []
-    for term in parts:
-        # Search for Shopify stores selling this part
-        stores = _search_shopify_stores(term)
-        found = False
-        for store in stores:
-            products = _fetch_products_from_store(store, term)
-            if products:
-                out_parts.append(products[0])  # Take first match
-                found = True
-                break
-        if not found:
-            # Fallback to Google Shopping
-            out_parts.append(_google_shopping_link(term))
-    
-    out_tools: list[dict] = []
-    for term in tools:
-        # Search for Shopify stores selling this tool
-        stores = _search_shopify_stores(term)
-        found = False
-        for store in stores:
-            products = _fetch_products_from_store(store, term)
-            if products:
-                out_tools.append(products[0])  # Take first match
-                found = True
-                break
-        if not found:
-            # Fallback to Google Shopping
-            out_tools.append(_google_shopping_link(term))
-    
+
+    out_parts = [_search_single_product(term) for term in parts]
+    out_tools = [_search_single_product(term) for term in tools]
+
     return {"parts": out_parts, "tools": out_tools}

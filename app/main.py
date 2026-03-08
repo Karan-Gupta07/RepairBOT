@@ -74,14 +74,27 @@ async def analyze_repair(image: UploadFile = File(...)):
     # Search for products
     products = find_parts_and_tools(parts, tools)
     
-    # Calculate actual cost from Shopify products
+    # Calculate actual cost from Shopify products (price may be "$19.99", "19.99", or numeric)
+    def _parse_price(val):
+        if val is None:
+            return None
+        try:
+            s = str(val).replace("$", "").replace(",", "").strip()
+            return float(s) if s else None
+        except (ValueError, TypeError):
+            return None
+
     shopify_items = []
     for part in products.get("parts", []):
-        if part.get("source") == "shopify" and part.get("price"):
-            shopify_items.append(float(part.get("price", 0)))
+        if part.get("source") == "shopify":
+            p = _parse_price(part.get("price"))
+            if p is not None:
+                shopify_items.append(p)
     for tool in products.get("tools", []):
-        if tool.get("source") == "shopify" and tool.get("price"):
-            shopify_items.append(float(tool.get("price", 0)))
+        if tool.get("source") == "shopify":
+            p = _parse_price(tool.get("price"))
+            if p is not None:
+                shopify_items.append(p)
     
     actual_cost = round(sum(shopify_items), 2) if shopify_items else None
     cost_estimate_note = None
