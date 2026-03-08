@@ -2,7 +2,7 @@ Our Reactiv Clip code to make this a Apple App Clip is in this repo: https://git
 
 <div align="center">
   <a href="https://www.youtube.com/watch?v=JoFuqZbOmnA">
-    <img src="https://www.youtube.com/watch?v=JoFuqZbOmnA/maxresdefault.jpg" alt="Reparo Demo Video" width="800"/>
+    <img src="https://www.youtube.com/watch?v=JoFuqZbOmnA" alt="Reparo Demo Video" width="800"/>
   </a>
   <br/>
   <strong>Click the image above to watch the demo on YouTube</strong>
