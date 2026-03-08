@@ -1,5 +1,13 @@
 Our Reactiv Clip code to make this a Apple App Clip is in this repo: https://github.com/4ppleSA0CE/reactivapp-clipkit-lab
 
+<div align="center">
+  <a href="https://www.youtube.com/watch?v=JoFuqZbOmnA">
+    <img src="https://www.youtube.com/watch?v=JoFuqZbOmnA/maxresdefault.jpg" alt="Reparo Demo Video" width="800"/>
+  </a>
+  <br/>
+  <strong>Click the image above to watch the demo on YouTube</strong>
+</div>
+
 # Reparo
 
 Reparo is a computer vision powered repair assistant that identifies broken components from an image, generates a repair plan, and automatically finds the parts needed to complete the repair.
