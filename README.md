@@ -8,7 +8,7 @@ Our Reactiv Clip code to make this a Apple App Clip is in this repo: https://git
   <strong>Click the image above to watch the demo on YouTube</strong>
 </div>
 
-# Reparo
+# Reparo (Hack Canada 2026 Winner, Most Complex AI Hack Finalist)
 
 Reparo is a computer vision powered repair assistant that identifies broken components from an image, generates a repair plan, and automatically finds the parts needed to complete the repair.
 
